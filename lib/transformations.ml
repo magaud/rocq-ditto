@@ -1096,10 +1096,7 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
               let new_or_and_intro_pattern =
                 if List.length old_goals_vars = List.length new_goals_vars then
                   []
-                else (
-                  Logs.debug (fun m ->
-                      m "old goals vars: %s"
-                        (list_of_list_of_str_to_str old_goals_vars));
+                else
                   let new_goals_vars =
                     List_utils.take
                       (List.length new_goals_vars - List.length old_goals_vars
@@ -1112,9 +1109,31 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
                     |> Option.get
                   in
 
-                  Logs.debug (fun m ->
-                      m "new goals vars: %s"
-                        (list_of_list_of_str_to_str new_goals_vars));
+                  let rec reorder other_vars induction_vars =
+                    match other_vars with
+                    | [] -> []
+                    | x :: tl -> (
+                        match
+                          List.find_opt
+                            (fun elem -> elem = "IH" ^ x)
+                            induction_vars
+                        with
+                        | Some induction_hyp ->
+                            x :: induction_hyp :: reorder tl induction_vars
+                        | None -> x :: reorder tl induction_vars)
+                  in
+
+                  let new_vars_sorted =
+                    List.map
+                      (fun l ->
+                        let induction_vars, other_vars =
+                          List.partition
+                            (fun x -> String.starts_with ~prefix:"IH" x)
+                            l
+                        in
+                        reorder other_vars induction_vars)
+                      new_vars
+                  in
 
                   List.mapi
                     (fun _ l ->
@@ -1126,7 +1145,7 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
                           l
                       in
                       mapped)
-                    new_vars)
+                    new_vars_sorted
               in
 
               let new_or_intro_pattern :
@@ -1156,16 +1175,8 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
           |> CAst.make
         in
 
-        let new_node =
-          Syntax_node.raw_tactic_expr_to_syntax_node new_raw_tac x.range.start
-          |> Result.to_option
-        in
-        Option.iter
-          (fun new_node ->
-            print_endline
-              (repr new_node ^ " " ^ Code_range.to_string new_node.range))
-          new_node;
-        new_node
+        Syntax_node.raw_tactic_expr_to_syntax_node new_raw_tac x.range.start
+        |> Result.to_option
     | _ -> None
   in
 
@@ -1276,14 +1287,6 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
             Runner.reified_goals_at_state token new_state
             |> List.map Runner.get_hypothesis_names
           in
-
-          let new_goals = Runner.reified_goals_at_state token new_state in
-
-          List.iter
-            (fun x ->
-              Reified_goal.pp Format.std_formatter x;
-              Format.pp_print_newline Format.std_formatter ())
-            new_goals;
 
           match rewriter node (Some old_goals_vars) (Some new_goals_vars) with
           | Some x -> Ok (new_state, Replace (node.id, x) :: acc)

@@ -16,7 +16,7 @@ Fixpoint count (l : light) : nat :=
 
 Theorem count_positive : forall l, count l > 0.
 Proof.
- induction l.
+  induction l.
   - auto with arith.
   - auto with arith.
   - auto with arith.

@@ -197,8 +197,9 @@ let ditto_plugin ~io:_ ~(token : Coq.Limits.Token.t) ~(doc : Doc.t) :
   let _ =
     match (current_file_count, total_files) with
     | Some curr_count, Some total_files ->
-        Printf.printf "Running rocq-ditto on %s (%d/%d) \n%!" uri_str curr_count
-          total_files
+        Printf.printf
+          "Running rocq-ditto on %s (file %d/%d in the project) \n%!" uri_str
+          curr_count total_files
     | _, _ -> Printf.printf "running rocq-ditto on %s\n%!" uri_str
   in
 

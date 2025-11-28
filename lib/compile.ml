@@ -84,13 +84,12 @@ let string_of_table (tbl : (string, string list) Hashtbl.t) =
   |> String.concat "\n"
 
 let coqproject_to_dep_graph (coqproject_file : string) :
-    (string Nary_tree.nary_tree, Error.t) result =
+    ((string, string list) Hashtbl.t, Error.t) result =
   let cmd =
     Rocq_version.dep_executable ^ Printf.sprintf " -f %s" coqproject_file
   in
   let ic = Unix.open_process_in cmd in
   let lines = read_all ic in
-  let lines_concat = String.concat "\n" lines in
   match Unix.close_process_in ic with
   | Unix.WEXITED 0 ->
       let re = Re.compile (Re.str "required_vo:") in
@@ -141,16 +140,26 @@ let coqproject_to_dep_graph (coqproject_file : string) :
           if List.length matching_tail > 0 then
             Hashtbl.add parents_table x matching_tail)
         filenames;
-      Logs.debug (fun m ->
-          m "parents table:\n%s" (string_of_table parents_table));
 
-      Ok (Node (lines_concat, []))
+      Ok parents_table
   | Unix.WEXITED n ->
       Error.format_to_or_error "%s exited with %d; output:\n%s"
         Rocq_version.dep_executable n (String.concat "\n" lines)
   | _ ->
       Error.string_to_or_error
         (Rocq_version.dep_executable ^ " terminated abnormally")
+
+let get_file_dependencies (fname : string)
+    (dep_graph : (string, string list) Hashtbl.t) : string list =
+  let rec aux filename : string list =
+    let curr_deps = Hashtbl.find_all dep_graph filename |> List.concat in
+    (* we want an empty list in case of no value found *)
+    let deps =
+      List.map aux curr_deps |> List.concat |> List.sort_uniq String.compare
+    in
+    curr_deps @ deps
+  in
+  aux fname
 
 let diagnostic_to_error (x : Lang.Diagnostic.t) : Error.t =
   let msg_string = Pp.string_of_ppcmds x.message in
