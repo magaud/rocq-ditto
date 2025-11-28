@@ -218,6 +218,15 @@ let shift_range (n_line : int) (n_char : int) (x : Code_range.t) : Code_range.t
 let shift_node (n_line : int) (n_char : int) (x : t) : t =
   { x with range = shift_range n_line n_char x.range }
 
+let is_syntax_node_inductive (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacInductive _ -> true | _ -> false))
+  | None -> false
+
 let is_syntax_node_command_allowed_in_proof (x : t) : bool =
   match x.ast with
   | Some ast -> (

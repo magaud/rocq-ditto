@@ -97,6 +97,9 @@ val is_syntax_node_context : t -> bool
 val is_syntax_node_require : t -> bool
 (** [is_syntax_node_require x] check if [x] is the Require command. *)
 
+val is_syntax_node_inductive : t -> bool
+(** [is_syntax_node_inductive x] check if [x] is the Inductive/Class command. *)
+
 val is_syntax_node_proof_intro_or_end : t -> bool
 (** [is_syntax_node_proof_intro_or_end x] check if [x] is an intro of a proof or
     an end of a proof, meaning if it's either a a sentence starting with:
