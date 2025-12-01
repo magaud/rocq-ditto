@@ -19,13 +19,13 @@ val element_with_id_opt : Uuidm.t -> t -> Syntax_node.t option
     [element_with_id_opt element_id doc] returns [Some element] if an element
     with the given [element_id] exists in [doc], otherwise returns [None]. *)
 
-val proof_with_id_opt : Uuidm.t -> t -> proof option
+val proof_with_id_opt : Uuidm.t -> t -> Proof.t option
 (** Find a proof with a specific proposition ID.
     [proof_with_id_opt proof_id doc] returns [Some element] if a proof has a
     proposition with the given [proof_id] exists in [doc], otherwise returns
     [None]. *)
 
-val proof_with_name_opt : string -> t -> proof option
+val proof_with_name_opt : string -> t -> Proof.t option
 (** Find a proof with a specific name. [proof_with_name_opt proof_name doc]
     returns [Some element] if a proof has the name [proof_name] where proof_name
     match the ident_decl of a command in \{Theorem, Lemma, Fact, Remark,
@@ -62,13 +62,13 @@ val replace_node : Uuidm.t -> Syntax_node.t -> t -> (t, Error.t) result
     replace the node with id [target_id] by [new_node]. Fail and return [Error]
     if a node with [target_id] isn't found in the document. *)
 
-val replace_proof : Uuidm.t -> proof -> t -> transformation_step list option
+val replace_proof : Uuidm.t -> Proof.t -> t -> transformation_step list option
 (** Get the transformation steps needed to replace a proof inside the document.
     [replace_proof target_id new_proof doc] return either a list of
     transformation steps to replace a proof wrapped in [Some] if a proof
     proposition with the id [target_id] exists and [None] otherwise *)
 
-val get_proofs : t -> (proof list, Error.t) result
+val get_proofs : t -> (Proof.t list, Error.t) result
 (** Extract proofs from a document. [get_proofs doc] takes a document [doc] of
     type [t] and returns a list of proofs. Each proof is constructed by
     aggregating elements of the document that share the same proof identifier.

@@ -1,4 +1,3 @@
-open Proof
 open Nary_tree
 
 val run_with_timeout :
@@ -63,8 +62,8 @@ val get_current_goal :
   (string Coq.Goals.Reified_goal.t, Error.t) result
 
 val can_reduce_to_zero_goals : Coq.State.t -> Syntax_node.t list -> bool
-val is_valid_proof : Rocq_document.t -> proof -> bool
-val tree_to_proof : Syntax_node.t nary_tree -> (proof, Error.t) result
+val is_valid_proof : Rocq_document.t -> Proof.t -> bool
+val tree_to_proof : Syntax_node.t nary_tree -> (Proof.t, Error.t) result
 
 val proof_tree_from_parents :
   int * Syntax_node.t ->
@@ -72,7 +71,7 @@ val proof_tree_from_parents :
   Syntax_node.t nary_tree
 
 val treeify_proof :
-  Rocq_document.t -> proof -> (Syntax_node.t nary_tree, Error.t) result
+  Rocq_document.t -> Proof.t -> (Syntax_node.t nary_tree, Error.t) result
 
 val fold_nodes_with_state :
   (Coq.State.t -> 'acc -> Syntax_node.t -> (Coq.State.t * 'acc, Error.t) result) ->
@@ -86,7 +85,7 @@ val fold_proof_with_state :
   Coq.Limits.Token.t ->
   (Coq.State.t -> 'acc -> Syntax_node.t -> (Coq.State.t * 'acc, Error.t) result) ->
   'acc ->
-  proof ->
+  Proof.t ->
   ('acc, Error.t) result
 
 val depth_first_fold_with_state :

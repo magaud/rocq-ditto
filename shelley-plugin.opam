@@ -4,7 +4,7 @@ synopsis: "Plugin to test proof-repair methods"
 description: "Plugin experimenting with several proof-repair approaches."
 maintainer: ["Alexandre Jean"]
 authors: ["Alexandre Jean"]
-license: "LICENSE"
+license: "LGPL-3.0-or-later"
 homepage: "https://github.com/blackbird1128/rocq-ditto"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/blackbird1128/rocq-ditto/issues"

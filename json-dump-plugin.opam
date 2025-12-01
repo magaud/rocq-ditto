@@ -4,7 +4,7 @@ synopsis: "Dump a Rocq-AST to JSON"
 description: "Plugin to explore Rocq internal ASTs by dumping them to JSON."
 maintainer: ["Alexandre Jean"]
 authors: ["Alexandre Jean"]
-license: "LICENSE"
+license: "LGPL-3.0-or-later"
 homepage: "https://github.com/blackbird1128/rocq-ditto"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/blackbird1128/rocq-ditto/issues"

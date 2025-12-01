@@ -84,7 +84,7 @@ let neat_compile ~io:_ ~token:_ ~(doc : Doc.t) =
 
           let* proofs = Rocq_document.get_proofs res in
           List.iter
-            (fun (x : Proof.proof) ->
+            (fun (x : Proof.t) ->
               print_endline (Syntax_node.repr x.proposition))
             proofs;
           let proof_trees =

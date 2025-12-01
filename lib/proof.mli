@@ -17,7 +17,7 @@ type transformation_step =
 val pp_transformation_step : Format.formatter -> transformation_step -> unit
 val transformation_step_to_string : transformation_step -> string
 
-type proof = {
+type t = {
   proposition : Syntax_node.t;
   proof_steps : Syntax_node.t list;
   status : proof_status;
@@ -29,12 +29,12 @@ val get_names : Syntax_node.t -> string list
 (** Get the names of a node. A node can have multiple names (i.e., mutual
     recursive definitions) *)
 
-val get_theorem_kind : proof -> Decls.theorem_kind option
+val get_theorem_kind : t -> Decls.theorem_kind option
 (** Get the theorem kind of a proof. If the proof isn't a basic assertion
     command ie: Theorem, Lemma, Fact, Remark, Property, Proposition or
     Corollary, return [None], otherwise return the kind of the theorem. *)
 
-val get_constr_expr : proof -> Constrexpr.constr_expr option
+val get_constr_expr : t -> Constrexpr.constr_expr option
 (** Get the constr_expr of the proof. If the proof start a theorem or a proof
     (as it should) return the [Constrexpr.constr_expr] representing the
     expression stated by the proof or theorem, otherwise return [None] *)
@@ -47,17 +47,17 @@ type theorem_components = {
   expr : Constrexpr.constr_expr;
 }
 
-val get_theorem_components : proof -> theorem_components option
+val get_theorem_components : t -> theorem_components option
 
 val syntax_node_of_theorem_components :
   theorem_components -> Code_point.t -> Syntax_node.t
 
-val get_proof_name : proof -> string option
+val get_proof_name : t -> string option
 (** Retrieve the name of the proof's proposition if available.
     [get_proof_name p] returns [Some name] if the proof [p] has a proposition
     with a name, otherwise it returns [None]. *)
 
-val get_proof_status : proof -> proof_status option
+val get_proof_status : t -> proof_status option
 (** Get the proof status of a proof. [get_proof_status proof] returns a
     [proof_status] wrapped in [Some] matching the status of the last node of the
     function. returns [Aborted] for both [Abort] and [Abort All]. Returns [None]
@@ -75,11 +75,11 @@ val print_tree : Syntax_node.t nary_tree -> string -> unit
     tree, where [tree] is an [Syntax_node.t nary_tree] and [indent] is a string
     used for indentation to represent the tree structure visually. *)
 
-val proof_nodes : proof -> Syntax_node.t list
+val proof_nodes : t -> Syntax_node.t list
 (** Extracts the nodes from a proof. [proof_nodes p] returns a list containing
     the proposition of the proof [p] followed by its proof steps. *)
 
-val proof_from_nodes : Syntax_node.t list -> (proof, Error.t) result
+val proof_from_nodes : Syntax_node.t list -> (t, Error.t) result
 (** Create a proof from a list of annotated AST nodes. [proof_from_nodes nodes]
     takes a list of nodes and returns a proof where the first node in the list
     is used as the proposition, and the remaining nodes are the proof steps. If

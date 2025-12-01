@@ -5,7 +5,7 @@
 
 (source (github blackbird1128/rocq-ditto))
 
-(license LICENSE)
+(license LGPL-3.0-or-later)
 
 (authors "Alexandre Jean")
 (maintainers "Alexandre Jean")

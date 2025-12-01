@@ -39,7 +39,6 @@ val reformat_node : t -> (t, Error.t) result
     it into a coq_ast and then using pr_vernac to reformat the string. Return
     [Error] if [node.ast] is none. *)
 
-val string_of_syntax_node : t -> string
 val validate_syntax_node : t -> (t, Error.t) result
 
 val mk_vernac_control :

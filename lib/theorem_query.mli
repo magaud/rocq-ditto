@@ -1,5 +1,3 @@
-open Proof
-
 type sexp_query =
   | Q_anything
   | Q_empty
@@ -18,7 +16,7 @@ type sexp_query =
   | Q_anywhere of sexp_query
   | Q_sequence of sexp_query list
 
-val get_proof_proposition_sexp : proof -> Sexplib.Sexp.t option
+val get_proof_proposition_sexp : Proof.t -> Sexplib.Sexp.t option
 val matches : sexp_query -> Sexplib.Sexp.t -> bool
 val extract_match : sexp_query -> Sexplib.Sexp.t -> Sexplib.Sexp.t option
 val collect_matches : sexp_query -> Sexplib.Sexp.t -> Sexplib.Sexp.t list

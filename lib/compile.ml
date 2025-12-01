@@ -62,26 +62,8 @@ let coqproject_sorted_files (coqproject_file : string) :
       Error.format_to_or_error "%s exited with %d; output:\n%s"
         Rocq_version.dep_executable n (String.concat "\n" lines)
   | _ ->
-      Error.string_to_or_error
-        (Rocq_version.dep_executable ^ " terminated abnormally")
-
-let list_to_str pp_elem l =
-  let elems = List.map pp_elem l |> String.concat "; " in
-  "[" ^ elems ^ "]"
-
-let list_of_list_to_str pp_elem lsts =
-  let inner = List.map (list_to_str pp_elem) lsts |> String.concat "; " in
-  "[" ^ inner ^ "]"
-
-let list_of_list_of_str_to_str lsts : string = list_of_list_to_str Fun.id lsts
-
-let string_of_table (tbl : (string, string list) Hashtbl.t) =
-  Hashtbl.fold
-    (fun key values acc ->
-      let joined = String.concat ", " values in
-      (key ^ " -> " ^ joined) :: acc)
-    tbl []
-  |> String.concat "\n"
+      Error.format_to_or_error "%s terminated abnormally"
+        Rocq_version.dep_executable
 
 let coqproject_to_dep_graph (coqproject_file : string) :
     ((string, string list) Hashtbl.t, Error.t) result =
@@ -146,8 +128,8 @@ let coqproject_to_dep_graph (coqproject_file : string) :
       Error.format_to_or_error "%s exited with %d; output:\n%s"
         Rocq_version.dep_executable n (String.concat "\n" lines)
   | _ ->
-      Error.string_to_or_error
-        (Rocq_version.dep_executable ^ " terminated abnormally")
+      Error.format_to_or_error "%s terminated abnormally"
+        Rocq_version.dep_executable
 
 let get_file_dependencies (fname : string)
     (dep_graph : (string, string list) Hashtbl.t) : string list =

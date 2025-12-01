@@ -324,7 +324,7 @@ let rec proof_tree_from_parents (cur_node : int * Syntax_node.t)
     ( tactic,
       List.rev_map (fun node -> proof_tree_from_parents node parents) childs )
 
-let treeify_proof (doc : Rocq_document.t) (p : proof) :
+let treeify_proof (doc : Rocq_document.t) (p : Proof.t) :
     (Syntax_node.t nary_tree, Error.t) result =
   let token = Coq.Limits.Token.create () in
   match get_init_state doc p.proposition token with
@@ -338,7 +338,7 @@ let treeify_proof (doc : Rocq_document.t) (p : proof) :
       Ok (proof_tree_from_parents (0, p.proposition) parents)
   | Error err -> Error err
 
-let is_valid_proof (doc : Rocq_document.t) (p : proof) : bool =
+let is_valid_proof (doc : Rocq_document.t) (p : Proof.t) : bool =
   let token = Coq.Limits.Token.create () in
   match get_init_state doc p.proposition token with
   | Ok init_state -> can_reduce_to_zero_goals init_state p.proof_steps
@@ -347,7 +347,7 @@ let is_valid_proof (doc : Rocq_document.t) (p : proof) : bool =
 let rec proof_tree_to_node_list (Node (value, children)) : Syntax_node.t list =
   value :: List.concat (List.map proof_tree_to_node_list children)
 
-let tree_to_proof (tree : Syntax_node.t nary_tree) : (proof, Error.t) result =
+let tree_to_proof (tree : Syntax_node.t nary_tree) : (Proof.t, Error.t) result =
   let ( let* ) = Result.bind in
   let nodes = proof_tree_to_node_list tree in
   let* nodes_head =
@@ -432,7 +432,7 @@ let fold_proof_with_state (doc : Rocq_document.t) (token : Coq.Limits.Token.t)
       Coq.State.t ->
       'acc ->
       Syntax_node.t ->
-      (Coq.State.t * 'acc, Error.t) result) (acc : 'acc) (p : Proof.proof) :
+      (Coq.State.t * 'acc, Error.t) result) (acc : 'acc) (p : Proof.t) :
     ('acc, Error.t) result =
   let proof_nodes = Proof.proof_nodes p in
 

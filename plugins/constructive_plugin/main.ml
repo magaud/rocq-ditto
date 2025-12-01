@@ -34,7 +34,7 @@ let replace_or_by_constructive_or_map (term : Constrexpr.constr_expr) :
       else term
   | _ -> term
 
-let replace_bet_by_betl_in_proof (x : proof) : transformation_step option =
+let replace_bet_by_betl_in_proof (x : Proof.t) : transformation_step option =
   let x_start = x.proposition.range.start in
   let+ components = Proof.get_theorem_components x in
 
@@ -53,7 +53,7 @@ let replace_bet_by_betl_in_proof (x : proof) : transformation_step option =
     Some (Replace (x.proposition.id, new_node))
   else None
 
-let replace_or_by_constructive_or (x : proof) : transformation_step option =
+let replace_or_by_constructive_or (x : Proof.t) : transformation_step option =
   let x_start = x.proposition.range.start in
   let+ components = Proof.get_theorem_components x in
 

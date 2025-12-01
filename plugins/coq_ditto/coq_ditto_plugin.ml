@@ -5,12 +5,10 @@ open Ditto.Proof
 
 type scoped_function =
   | ProofScope of
-      (Rocq_document.t ->
-      Proof.proof ->
-      (transformation_step list, Error.t) result)
+      (Rocq_document.t -> Proof.t -> (transformation_step list, Error.t) result)
   | DocScope of (Rocq_document.t -> (transformation_step list, Error.t) result)
 
-let wrap_to_treeify (doc : Rocq_document.t) (x : proof) :
+let wrap_to_treeify (doc : Rocq_document.t) (x : Proof.t) :
     (Syntax_node.t Nary_tree.nary_tree, Error.t) result =
   Runner.treeify_proof doc x
 
@@ -77,7 +75,7 @@ let apply_steps
         Some proof )
   | Error err -> (Error err, proof_count, curr_doc, Some proof)
 
-let display_transformation_error (prev_proof : proof option)
+let display_transformation_error (prev_proof : Proof.t option)
     (transformation_kind : transformation_kind) (err : Error.t) =
   let prev_proof_name =
     match prev_proof with
@@ -93,15 +91,15 @@ let display_transformation_error (prev_proof : proof option)
 
 let local_apply_proof_transformation (doc_acc : Rocq_document.t)
     (transformation :
-      Rocq_document.t -> proof -> (transformation_step list, Error.t) result)
-    (transformation_kind : transformation_kind) (proof_list : proof list)
+      Rocq_document.t -> Proof.t -> (transformation_step list, Error.t) result)
+    (transformation_kind : transformation_kind) (proof_list : Proof.t list)
     (verbose : bool) (quiet : bool) : Rocq_document.t =
   let proof_total = List.length proof_list in
   let first_proof = List.nth_opt proof_list 0 in
   let token = Coq.Limits.Token.create () in
   let res, _, prev_doc, prev_proof =
     List.fold_left
-      (fun (doc_acc_bis, proof_count, prev_doc, (prev_proof : proof option))
+      (fun (doc_acc_bis, proof_count, prev_doc, (prev_proof : Proof.t option))
            proof ->
         let curr_doc =
           match doc_acc_bis with

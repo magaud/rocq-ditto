@@ -37,7 +37,7 @@ let transformation_step_to_string (step : transformation_step) : string =
 
 (* TODO add precisions *)
 
-type proof = {
+type t = {
   proposition : Syntax_node.t;
   proof_steps : Syntax_node.t list;
   status : proof_status;
@@ -57,7 +57,7 @@ let get_names (node : Syntax_node.t) : string list =
       | None -> [])
   | None -> []
 
-let get_theorem_kind (x : proof) : Decls.theorem_kind option =
+let get_theorem_kind (x : t) : Decls.theorem_kind option =
   let coq_ast =
     Option.map
       (fun (x : Doc.Node.Ast.t) -> Coq.Ast.to_coq x.v)
@@ -73,7 +73,7 @@ let get_theorem_kind (x : proof) : Decls.theorem_kind option =
           | _ -> None))
   | None -> None
 
-let get_constr_expr (x : proof) : Constrexpr.constr_expr option =
+let get_constr_expr (x : t) : Constrexpr.constr_expr option =
   let coq_ast =
     Option.map
       (fun (x : Doc.Node.Ast.t) -> Coq.Ast.to_coq x.v)
@@ -98,7 +98,7 @@ type theorem_components = {
   expr : Constrexpr.constr_expr;
 }
 
-let get_theorem_components (x : proof) : theorem_components option =
+let get_theorem_components (x : t) : theorem_components option =
   let coq_ast =
     Option.map
       (fun (x : Doc.Node.Ast.t) -> Coq.Ast.to_coq x.v)
@@ -144,10 +144,10 @@ let proof_status_from_last_node (node : Syntax_node.t) :
           | _ -> Error.string_to_or_error "not a valid closing node"))
   | None -> Error.string_to_or_error "not a valid closing node (no ast)"
 
-let get_proof_name (p : proof) : string option =
+let get_proof_name (p : t) : string option =
   List.nth_opt (get_names p.proposition) 0
 
-let get_proof_status (p : proof) : proof_status option =
+let get_proof_status (p : t) : proof_status option =
   match p.proof_steps with
   | [] -> None
   | steps ->
@@ -164,10 +164,9 @@ let rec print_tree (tree : Syntax_node.t nary_tree) (indent : string) : unit =
       Printf.printf "%sNode(%s)\n" indent (repr value);
       List.iter (fun child -> print_tree child (indent ^ "  ")) children
 
-let proof_nodes (p : proof) : Syntax_node.t list =
-  p.proposition :: p.proof_steps
+let proof_nodes (p : t) : Syntax_node.t list = p.proposition :: p.proof_steps
 
-let proof_from_nodes (nodes : Syntax_node.t list) : (proof, Error.t) result =
+let proof_from_nodes (nodes : Syntax_node.t list) : (t, Error.t) result =
   if List.length nodes < 2 then
     Error.string_to_or_error
       ("Not enough elements to create a proof from the nodes.\nnodes: "

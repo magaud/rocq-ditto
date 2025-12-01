@@ -1,0 +1,45 @@
+name: Rocq Ditto CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rocq-version: ["latest", "9.0.0", "8.20.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install opam (no switch)
+        run: |
+          sudo apt update
+          sudo apt install -y opam
+          opam init -y --bare
+          eval "$(opam env)"
+
+      - name: Cache opam root
+        uses: actions/cache@v4
+        with:
+          path: ~/.opam
+          key: opam-root-${{ matrix.rocq-version }}-${{ hashFiles('configure.sh', '**/*.opam') }}
+          restore-keys: opam-root-
+          
+      - name: Clean local switch
+        run: rm -rf _opam/
+
+      - name: Configure Rocq Ditto
+        run: |
+          set -eux
+          ./configure.sh ${{ matrix.rocq-version }}
+          eval "$(opam env)"
+
+      - name: Run tests
+        run: dune runtest
+

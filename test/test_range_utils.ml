@@ -1,7 +1,7 @@
 (* test_range_utils.ml *)
 
 open Alcotest
-open Ditto.Range_utils
+open Ditto.Code_range
 
 let test_simple_overlapping () =
   check bool "overlapping simple" true (are_flat_ranges_colliding (2, 5) (4, 6))

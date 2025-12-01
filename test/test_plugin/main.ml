@@ -122,7 +122,7 @@ let make_dummy_node_from_repr (start_line : int) (start_char : int)
   let start_point : Code_point.t =
     { line = start_line; character = start_char }
   in
-  let range = Range_utils.range_from_starting_point_and_repr start_point repr in
+  let range = Code_range.range_from_starting_point_and_repr start_point repr in
   {
     ast = None;
     repr = lazy repr;
@@ -1144,8 +1144,8 @@ let test_tree_transformation (doc : Doc.t)
 
 let test_proof_transformation (doc : Doc.t)
     (proof_transformation :
-      Rocq_document.t -> proof -> (transformation_step list, Error.t) result) ()
-    : unit =
+      Rocq_document.t -> Proof.t -> (transformation_step list, Error.t) result)
+    () : unit =
   let uri_str = Lang.LUri.File.to_string_uri doc.uri in
   let doc = Rocq_document.parse_document doc in
 

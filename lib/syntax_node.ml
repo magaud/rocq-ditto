@@ -51,7 +51,7 @@ let mk_vernac_control ?(loc : Loc.t option)
 let are_colliding (a : t) (b : t) : bool =
   let a_line_range = (a.range.start.line, a.range.end_.line) in
   let b_line_range = (b.range.start.line, b.range.end_.line) in
-  match Range_utils.common_range a_line_range b_line_range with
+  match Code_range.common_range a_line_range b_line_range with
   | Some range ->
       let len_range = snd range - fst range + 1 in
       if len_range > 1 then true
@@ -73,7 +73,7 @@ let are_colliding (a : t) (b : t) : bool =
         in
         let a_char_range = (a_line_start_char, a_line_end_char) in
         let b_char_range = (b_line_start_char, b_line_end_char) in
-        Option.has_some (Range_utils.common_range a_char_range b_char_range)
+        Option.has_some (Code_range.common_range a_char_range b_char_range)
   | None -> false
 
 let colliding_nodes (target : t) (nodes_list : t list) : t list =
@@ -81,7 +81,7 @@ let colliding_nodes (target : t) (nodes_list : t list) : t list =
 
 let compare_nodes (a : t) (b : t) : int =
   match
-    Range_utils.common_range
+    Code_range.common_range
       (a.range.start.line, a.range.end_.line)
       (b.range.start.line, b.range.end_.line)
   with
@@ -110,7 +110,7 @@ let validate_syntax_node (x : t) : (t, Error.t) result =
 let comment_syntax_node_of_string (content : string)
     (start_point : Code_point.t) : (t, Error.t) result =
   let range =
-    Range_utils.range_from_starting_point_and_repr start_point content
+    Code_range.range_from_starting_point_and_repr start_point content
   in
 
   if
@@ -134,7 +134,7 @@ let comment_syntax_node_of_string (content : string)
 
 let syntax_node_of_string (code : string) (start_point : Code_point.t) :
     (t, Error.t) result =
-  let range = Range_utils.range_from_starting_point_and_repr start_point code in
+  let range = Code_range.range_from_starting_point_and_repr start_point code in
   (*offset doesn't count the newline in*)
   if
     range.start.line = range.end_.line
@@ -178,7 +178,7 @@ let syntax_node_of_coq_ast (ast : Coq.Ast.t) (start_point : Code_point.t) : t =
     Ppvernac.pr_vernac coq_ast |> Pp.string_of_ppcmds
     |> remove_outer_parentheses
   in
-  let range = Range_utils.range_from_starting_point_and_repr start_point repr in
+  let range = Code_range.range_from_starting_point_and_repr start_point repr in
   let node_ast : Doc.Node.Ast.t = { v = ast; ast_info = None } in
   {
     ast = Some node_ast;
@@ -198,11 +198,6 @@ let reformat_node (x : t) : (t, Error.t) result =
       (* we return the same id, doesn't matter in the order of operation we do *)
   | None ->
       Error.string_to_or_error "The node need to have an AST to be reformatted"
-
-let string_of_syntax_node (node : t) : string =
-  match node.ast with
-  | Some ast -> Ppvernac.pr_vernac (Coq.Ast.to_coq ast.v) |> Pp.string_of_ppcmds
-  | None -> repr node
 
 let shift_point (n_line : int) (n_char : int) (x : Code_point.t) : Code_point.t
     =
@@ -377,7 +372,7 @@ let is_syntax_node_program_instance_start (x : t) : bool =
 
               List.exists
                 (fun (flag : Attributes.vernac_flag) ->
-                  let str, flag_value = flag.v in
+                  let str, _ = flag.v in
                   str = "program")
                 flags
           | _ -> false))

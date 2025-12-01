@@ -26,10 +26,10 @@ let pp_coq_document (fmt : Format.formatter) (doc : t) : unit =
 
   Format.fprintf fmt "document repr: %s" doc.document_repr
 
-let get_proofs (doc : t) : (proof list, Error.t) result =
+let get_proofs (doc : t) : (Proof.t list, Error.t) result =
   let rec aux (nodes : Syntax_node.t list) (cur_proof_acc : Syntax_node.t list)
-      (proofs_acc : (proof, Error.t) result list) (cur_state : proofState) :
-      (proof, Error.t) result list =
+      (proofs_acc : (Proof.t, Error.t) result list) (cur_state : proofState) :
+      (Proof.t, Error.t) result list =
     match nodes with
     | [] -> proofs_acc
     | x :: tail -> (
@@ -300,14 +300,14 @@ let element_with_id_opt (element_id : Uuidm.t) (doc : t) : Syntax_node.t option
     =
   List.find_opt (fun elem -> elem.id = element_id) doc.elements
 
-let proof_with_id_opt (proof_id : Uuidm.t) (doc : t) : proof option =
+let proof_with_id_opt (proof_id : Uuidm.t) (doc : t) : Proof.t option =
   let proofs_res = get_proofs doc in
   match proofs_res with
   | Ok proofs ->
       List.find_opt (fun elem -> elem.proposition.id = proof_id) proofs
   | Error _ -> None
 
-let proof_with_name_opt (proof_name : string) (doc : t) : proof option =
+let proof_with_name_opt (proof_name : string) (doc : t) : Proof.t option =
   let proof_res = get_proofs doc in
   match proof_res with
   | Ok proofs ->
@@ -355,9 +355,9 @@ let remove_node_with_id (target_id : Uuidm.t) ?(remove_method = ShiftNode)
   let ( let* ) = Result.bind in
   match element_with_id_opt target_id doc with
   | None ->
-      Error.string_to_or_error
-        ("The element with id: " ^ Uuidm.to_string target_id
-       ^ " wasn't found in the document")
+      Error.format_to_or_error
+        "The element with id: %s wasn't found in the document"
+        (Uuidm.to_string target_id)
   | Some removed_node -> (
       let before, after = split_at_id target_id doc in
       let block_height =
@@ -494,7 +494,7 @@ let replace_node (target_id : Uuidm.t) (replacement : Syntax_node.t) (doc : t) :
         {
           replacement with
           range =
-            Range_utils.range_from_starting_point_and_repr target.range.start
+            Code_range.range_from_starting_point_and_repr target.range.start
               (repr replacement);
         }
       in
@@ -565,7 +565,7 @@ let replace_node (target_id : Uuidm.t) (replacement : Syntax_node.t) (doc : t) :
         ("The target node with id : " ^ Uuidm.to_string target_id
        ^ " doesn't exists")
 
-let replace_proof (target_id : Uuidm.t) (new_proof : proof) (doc : t) :
+let replace_proof (target_id : Uuidm.t) (new_proof : Proof.t) (doc : t) :
     transformation_step list option =
   match proof_with_id_opt target_id doc with
   | Some target ->
@@ -610,7 +610,7 @@ let apply_transformation_step (step : transformation_step) (doc : t) :
           in
 
           let new_node_range =
-            Range_utils.range_from_starting_point_and_repr
+            Code_range.range_from_starting_point_and_repr
               attached_node_start_point (repr attached_node)
           in
           let new_node_range : Code_range.t =

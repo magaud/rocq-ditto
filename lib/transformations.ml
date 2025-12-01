@@ -318,13 +318,13 @@ let fold_replace_assumption_with_apply (doc : Rocq_document.t)
   in
   res
 
-let id_transform (_ : Rocq_document.t) (_ : proof) :
+let id_transform (_ : Rocq_document.t) (_ : Proof.t) :
     (transformation_step list, Error.t) result =
   Ok []
 
-(* let buggy_transformation (_ : Rocq_document.t) (_ : proof) : (transformation_step list, Error.t) result  *)
+(* let buggy_transformation (_ : Rocq_document.t) (_ Proof.t) : (transformation_step list, Error.t) result  *)
 
-let admit_proof (_ : Rocq_document.t) (proof : proof) :
+let admit_proof (_ : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let ( let* ) = Result.bind in
   let proof_close_node =
@@ -339,7 +339,7 @@ let int_in_range ~min ~max =
   if min > max then invalid_arg "int_in_range";
   min + Random.int (max - min + 1)
 
-let remove_random_step (_ : Rocq_document.t) (proof : proof) :
+let remove_random_step (_ : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let num_steps = List.length proof.proof_steps in
   if num_steps <= 2 then Ok []
@@ -352,7 +352,7 @@ let remove_random_step (_ : Rocq_document.t) (proof : proof) :
     in
     Ok [ Replace (rand_node.id, incorrect_node) ]
 
-let admit_and_comment_proof_steps (_ : Rocq_document.t) (proof : proof) :
+let admit_and_comment_proof_steps (_ : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let remove_all_steps =
     List.map (fun step -> Remove step.id) proof.proof_steps
@@ -389,7 +389,7 @@ let admit_and_comment_proof_steps (_ : Rocq_document.t) (proof : proof) :
         Attach (admitted_node, LineAfter, comment_node.id);
       ])
 
-let remove_unecessary_steps (doc : Rocq_document.t) (proof : proof) :
+let remove_unecessary_steps (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token_reduce = Coq.Limits.Token.create () in
 
@@ -417,7 +417,7 @@ let remove_unecessary_steps (doc : Rocq_document.t) (proof : proof) :
   | Ok state -> aux state (Ok []) (proof_nodes proof)
   | _ -> Error.string_to_or_error "Unable to retrieve initial state"
 
-let flatten_goal_selectors (doc : Rocq_document.t) (proof : proof) :
+let flatten_goal_selectors (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token = Coq.Limits.Token.create () in
   let ( let* ) = Result.bind in
@@ -487,7 +487,7 @@ let flatten_goal_selectors (doc : Rocq_document.t) (proof : proof) :
     steps;
   Ok (List.rev steps)
 
-let compress_intro (doc : Rocq_document.t) (proof : proof) :
+let compress_intro (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token = Coq.Limits.Token.create () in
   let rec aux state (acc_intro, acc_steps) nodes =
@@ -523,7 +523,7 @@ let compress_intro (doc : Rocq_document.t) (proof : proof) :
       Ok steps
   | _ -> Error.string_to_or_error "Unable to retrieve initial state"
 
-let fold_add_time_taken (doc : Rocq_document.t) (proof : proof) :
+let fold_add_time_taken (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token = Coq.Limits.Token.create () in
   match
@@ -570,7 +570,7 @@ let fold_add_time_taken (doc : Rocq_document.t) (proof : proof) :
   | Ok acc -> Ok acc
   | Error err -> Error err
 
-let replace_auto_with_steps (doc : Rocq_document.t) (proof : proof) :
+let replace_auto_with_steps (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token = Coq.Limits.Token.create () in
   let ( let* ) = Result.bind in
@@ -1036,16 +1036,6 @@ let string_to_intro_pattern_expr (x : string) :
     (fun a -> Tactypes.IntroNaming a)
     (string_to_intro_pattern_naming_expr x)
 
-let list_to_str pp_elem l =
-  let elems = List.map pp_elem l |> String.concat "; " in
-  "[" ^ elems ^ "]"
-
-let list_of_list_to_str pp_elem lsts =
-  let inner = List.map (list_to_str pp_elem) lsts |> String.concat "; " in
-  "[" ^ inner ^ "]"
-
-let list_of_list_of_str_to_str lsts : string = list_of_list_to_str Fun.id lsts
-
 let get_new_vars ?(keep : string list = [])
     (old_goals_vars : string list list option)
     (new_goals_vars : string list list option) : string list list option =
@@ -1061,7 +1051,7 @@ let get_new_vars ?(keep : string list = [])
            old_goals_vars new_goals_vars)
   | _ -> None
 
-let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
+let explicit_fresh_variables (doc : Rocq_document.t) (proof : Proof.t) :
     (transformation_step list, Error.t) result =
   let token = Coq.Limits.Token.create () in
   let ( let* ) = Result.bind in
@@ -1296,16 +1286,13 @@ let explicit_fresh_variables (doc : Rocq_document.t) (proof : proof) :
 
 let apply_proof_transformation
     (transformation :
-      Rocq_document.t ->
-      Proof.proof ->
-      (transformation_step list, Error.t) result) (doc : Rocq_document.t) :
-    (Rocq_document.t, Error.t) result =
+      Rocq_document.t -> Proof.t -> (transformation_step list, Error.t) result)
+    (doc : Rocq_document.t) : (Rocq_document.t, Error.t) result =
   let proofs_rec = Rocq_document.get_proofs doc in
   match proofs_rec with
   | Ok proofs ->
       List.fold_left
-        (fun (doc_acc : (Rocq_document.t, Error.t) result) (proof : Proof.proof)
-           ->
+        (fun (doc_acc : (Rocq_document.t, Error.t) result) (proof : Proof.t) ->
           match doc_acc with
           | Ok acc -> (
               let transformation_steps = transformation acc proof in

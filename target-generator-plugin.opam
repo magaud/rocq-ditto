@@ -3,7 +3,7 @@ opam-version: "2.0"
 synopsis: "Generate JSON results for test comparisons"
 maintainer: ["Alexandre Jean"]
 authors: ["Alexandre Jean"]
-license: "LICENSE"
+license: "LGPL-3.0-or-later"
 homepage: "https://github.com/blackbird1128/rocq-ditto"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/blackbird1128/rocq-ditto/issues"

@@ -4,7 +4,7 @@ synopsis: "Library behind the ditto CLI"
 description: "Helper library used by the ditto command-line interface."
 maintainer: ["Alexandre Jean"]
 authors: ["Alexandre Jean"]
-license: "LICENSE"
+license: "LGPL-3.0-or-later"
 homepage: "https://github.com/blackbird1128/rocq-ditto"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/blackbird1128/rocq-ditto/issues"

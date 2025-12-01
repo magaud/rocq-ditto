@@ -21,7 +21,7 @@ type sexp_query =
   | Q_anywhere of sexp_query
   | Q_sequence of sexp_query list
 
-let get_proof_proposition_sexp (x : proof) : Sexplib.Sexp.t option =
+let get_proof_proposition_sexp (x : Proof.t) : Sexplib.Sexp.t option =
   let coq_ast =
     Option.map
       (fun (x : Doc.Node.Ast.t) -> Coq.Ast.to_coq x.v)

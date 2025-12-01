@@ -62,9 +62,6 @@ let run_process_silent ~(env : string array) ~(args : string array)
   let devnull = Unix.openfile "/dev/null" [ Unix.O_WRONLY ] 0o666 in
   run_process ~env ~args prog devnull devnull devnull
 
-let show_string_array arr =
-  "[| " ^ String.concat "; " (Array.to_list arr) ^ " |]"
-
 let make_args_transform_files (prog : string) (root : string) (verbose : bool)
     (save_vo : bool) (input_file : string) =
   let base =
@@ -286,11 +283,6 @@ let dependencies_action_conv =
   in
   let print fmt k = Format.fprintf fmt "%s" (dependencies_action_to_string k) in
   Cmdliner.Arg.conv (parse, print)
-
-let string_list_conv =
-  let parse s = Ok (String.split_on_char ' ' s |> List.filter (( <> ) "")) in
-  let print fmt lst = Format.fprintf fmt "%s" (String.concat " " lst) in
-  Arg.conv (parse, print)
 
 let input_t =
   let doc = "Input folder or filename." in
