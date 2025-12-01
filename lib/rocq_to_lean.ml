@@ -6,11 +6,24 @@ open Ppconstr
 open Libnames
 open Pputils
 
-let change u v s = String.map (fun x -> if (x=u) then v else x) s;;
+let charlist_of_string s =
+  let rec trav l i =
+    if i = l then [] else s.[i]::trav l (i+1)
+  in
+  trav (String.length s) 0;;
 
-let lean_string_of_ppcmds t = (*change '~' c2ac*) (Pp.string_of_ppcmds t)
+let rec replace_patterns_aux str =
+  match str with
+    [] -> ""
+  | x :: [] -> String.make 1 x
+  | '~' :: str2 -> "\u{00AC}" ^ replace_patterns_aux str2
+  | '<' :: '>' :: str2 -> "\u{2260}" ^ replace_patterns_aux str2
+  | x2 :: str2 -> String.make 1 x2 ^ replace_patterns_aux str2;;
 
-  
+let replace_patterns str = replace_patterns_aux (charlist_of_string str);;
+
+let lean_string_of_ppcmds t = replace_patterns (Pp.string_of_ppcmds t)
+
 let is_prefix (prefix : string) (s : string) =
   let plen = String.length prefix in
    String.length s >= plen && String.sub s 0 plen = prefix
@@ -41,7 +54,10 @@ let x_to_string (t : (local_decl_expr * record_field_attr_unparsed) list) =
 let ind_expr_to_string (i : inductive_expr) : string =
   match i with ((cf , (li, cido)), ipe,_ (*ce*), clrde) ->
                 (*type inductive_params_expr = local_binder_expr list * local_binder_expr list option*)
-let lbel =  match ipe with (lbel1, lbel2) ->
+
+    let s_li = lean_string_of_ppcmds (pr_qualid (qualid_of_lident li)) in 
+
+    let s_lbel =  match ipe with (lbel1, lbel2) ->
                                 match lbel2 with Some l -> (lean_string_of_ppcmds (pr_qualid (qualid_of_lident li)))^ 
                                 (lean_string_of_ppcmds
                                   (pr_binders empty_env  empty lbel1)) ^
@@ -50,14 +66,11 @@ let lbel =  match ipe with (lbel1, lbel2) ->
                                                | None -> lean_string_of_ppcmds
                                   (pr_binders empty_env  empty lbel1)
 in let s_clrde = match clrde with
-       Constructors lc -> " where " ^
+       Constructors lc -> 
        String.concat " | " (List.map
                            (fun (_, (lin, co_exp)) -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident lin))
-^ " : " ^lean_string_of_ppcmds  (pr_top co_exp)
+^ " : " ^lean_string_of_ppcmds  (pr_top co_exp) ^ "\n" 
                            ) lc)
-
-
-
      | RecordDecl (lid1_o, l,  lid2_o) ->
         let s_l1 =
           match lid1_o with Some l1 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l1)) | None -> ""
@@ -68,7 +81,7 @@ in let s_clrde = match clrde with
           match lid2_o with Some l2 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l2)) | None -> ""
         in s_l1 ^ s_l ^ s_l2
    in
-        lbel ^ s_clrde
+        s_li ^  " where " ^ s_lbel ^ s_clrde
 
 
 
@@ -95,12 +108,40 @@ keyword ^ String.concat "" (List.map (fun (ind_expr, ndl) -> ind_expr_to_string 
 
 
 
-           
-
 let rocq_to_lean (doc : Rocq_document.t) :
     (transformation_step list, Error.t) result =
   (* let proofs = Rocq_document.get_proofs doc in *)
 
+
+  (* Proof command *)
+  let proof_command_nodes =
+    List.filter Syntax_node.is_syntax_node_proof_command doc.elements
+  in
+  let replace_proof_command_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) proof_command_nodes
+  in
+
+  
+  (* proof nodes *)
+
+  let tactic_nodes =
+    List.filter Syntax_node.is_syntax_node_tactic doc.elements
+  in
+  let replace_tactic_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) tactic_nodes
+  in
+
+  (* end of proof : Qed or Admitted *)
+
+ let end_proof_nodes =
+    List.filter Syntax_node.is_syntax_node_proof_end doc.elements
+  in
+  let replace_end_proof_nodes = List.map (fun (x : Syntax_node.t) ->
+                                 let node = Syntax_node.comment_syntax_node_of_string
+                            ":= by admit\n" x.range.start
+                          |> Result.get_ok in
+                                 Replace (x.id, node)) end_proof_nodes
+  in
+
+  
   (* require commands *)
   let require_nodes =
     List.filter Syntax_node.is_syntax_node_require doc.elements
@@ -212,4 +253,9 @@ let rocq_to_lean (doc : Rocq_document.t) :
         Replace (x.id, lean_comment_node))
       comment_nodes
   in
-  Ok (replace_requires @ replace_classes @ replace_comments)
+  Ok (replace_proof_command_nodes @
+        replace_end_proof_nodes @
+          replace_tactic_nodes @
+            replace_requires @
+              replace_classes @
+                replace_comments)
