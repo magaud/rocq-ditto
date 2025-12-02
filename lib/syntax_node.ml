@@ -276,6 +276,35 @@ let is_syntax_node_proof_with (x : t) : bool =
           | _ -> false))
   | None -> false
 
+let is_syntax_node_definition_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with
+          | Vernacexpr.VernacDefinition _ -> true
+          | _ -> false))
+  | None -> false
+
+let is_syntax_node_section_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp expr -> (match expr with Vernacexpr.VernacBeginSection _ -> true | _ -> false)
+      | VernacSynPure _ -> false
+  )
+  | None -> false
+
+let is_syntax_node_end_section_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp expr -> (match expr with Vernacexpr.VernacEndSegment _ -> true | _ -> false)
+      | VernacSynPure _ -> false
+  )
+  | None -> false
+
 [%%if rocq_version <= (9, 0, 1)]
 
 let get_syntax_node_proof_with_tactic (x : t) : string option =

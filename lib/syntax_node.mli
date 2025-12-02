@@ -75,6 +75,10 @@ val is_syntax_node_opening_bracket : t -> bool
 val is_syntax_node_closing_bracket : t -> bool
 val is_syntax_node_focusing_goal : t -> bool
 
+val is_syntax_node_section_command : t -> bool
+val is_syntax_node_end_section_command : t -> bool
+val is_syntax_node_definition_command : t -> bool
+
 val is_syntax_node_focus_command : t -> bool
 (** [is_syntax_node_focus_command] check if [x] is the command [Focus] *)
 

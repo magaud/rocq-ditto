@@ -5,6 +5,7 @@ open Environ
 open Ppconstr
 open Libnames
 open Pputils
+open Constrexpr
 
 let charlist_of_string s =
   let rec trav l i =
@@ -18,6 +19,7 @@ let rec replace_patterns_aux str =
   | x :: [] -> String.make 1 x
   | '~' :: str2 -> "\u{00AC}" ^ replace_patterns_aux str2
   | '<' :: '>' :: str2 -> "\u{2260}" ^ replace_patterns_aux str2
+  (* | 'n' :: 'a' :: 't' :: str2 -> "Nat" ^ replace_patterns_aux str2*)
   | x2 :: str2 -> String.make 1 x2 ^ replace_patterns_aux str2;;
 
 let replace_patterns str = replace_patterns_aux (charlist_of_string str);;
@@ -42,49 +44,68 @@ let x_to_string (t : (local_decl_expr * record_field_attr_unparsed) list) =
   "\n" ^ String.concat "\n" (List.map (fun (lde, rfau) ->
                         match lde with
                           AssumExpr (ln, lbel, ce) ->
-                           lean_string_of_ppcmds (pr_lname ln) ^ " : " ^ 
-                             lean_string_of_ppcmds (pr_binders empty_env  empty lbel) ^
+                           lean_string_of_ppcmds (pr_lname ln) ^ " " ^
+                             lean_string_of_ppcmds (pr_binders empty_env  empty lbel) ^ " : " ^
                              lean_string_of_ppcmds (pr_top ce)
-                        | DefExpr (ln, lbel, ce, ceo) -> lean_string_of_ppcmds (pr_lname ln) ^ " := " ^ 
+                        | DefExpr (ln, lbel, ce, ceo) ->
+                           lean_string_of_ppcmds (pr_lname ln) ^ " " ^ 
                              lean_string_of_ppcmds (pr_binders empty_env  empty lbel) ^
-                             lean_string_of_ppcmds (pr_top ce))
+                               " := " ^ lean_string_of_ppcmds (pr_top ce))
                       t) ^ "\n"
- 
 
 let ind_expr_to_string (i : inductive_expr) : string =
   match i with ((cf , (li, cido)), ipe,_ (*ce*), clrde) ->
                 (*type inductive_params_expr = local_binder_expr list * local_binder_expr list option*)
 
-    let s_li = lean_string_of_ppcmds (pr_qualid (qualid_of_lident li)) in 
+    let s_li = lean_string_of_ppcmds (pr_qualid (qualid_of_lident li)) in
 
     let s_lbel =  match ipe with (lbel1, lbel2) ->
-                                match lbel2 with Some l -> (lean_string_of_ppcmds (pr_qualid (qualid_of_lident li)))^ 
-                                (lean_string_of_ppcmds
-                                  (pr_binders empty_env  empty lbel1)) ^
-                                 (lean_string_of_ppcmds
-                                  (pr_binders empty_env  empty l))
-                                               | None -> lean_string_of_ppcmds
-                                  (pr_binders empty_env  empty lbel1)
-in let s_clrde = match clrde with
-       Constructors lc -> 
+        let s_lbel1 =
+          String.concat "" (List.map (function x -> match x with
+                                               CLocalAssum (ll,rie,bk,ce) -> " extends " ^ (lean_string_of_ppcmds (pr_top ce))
+                                             | CLocalDef    (_,_,_,_) -> "CLocalDef?"
+                                             | CLocalPattern _ -> "CLocalPattern?") lbel1) in 
+
+
+
+        (* (lean_string_of_ppcmds (pr_binders empty_env  empty lbel1)) in *)
+
+                                  let s_lbel2 =   match lbel2 with Some l ->
+                                                                       (lean_string_of_ppcmds (pr_binders empty_env  empty l))
+                                                                    | None -> "" in 
+                                  s_lbel1 ^ s_lbel2 in
+
+    (*let status_lbel1 = match ipe with (lbel1, lbel2) ->
+      String.concat "" (List.map (function x -> match x with
+                                               CLocalAssum (ll,rie,bk,ce) -> "CLocalAssum extends " ^ (lean_string_of_ppcmds (pr_top ce))
+                                             | CLocalDef    (_,_,_,_) -> "CLocalDef"
+                                             | CLocalPattern _ -> "CLocalPattern") lbel1) in *)
+    (*let status_lbel2 = match ipe with (lbel1, lbel2) ->
+        String.concat "" (match lbel2 with Some x -> (List.map (function x -> match x with
+                                               CLocalAssum (_,_,_,_) -> "CLocalAssum2"
+                                             | CLocalDef    (_,_,_,_) -> "CLocalDef2"
+                                             | CLocalPattern _ -> "CLocalPattern2") x)  | None -> [""]) in*)
+    let s_clrde = match clrde with
+       Constructors lc ->
        String.concat " | " (List.map
-                           (fun (_, (lin, co_exp)) -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident lin))
-^ " : " ^lean_string_of_ppcmds  (pr_top co_exp) ^ "\n" 
-                           ) lc)
-     | RecordDecl (lid1_o, l,  lid2_o) ->
-        let s_l1 =
-          match lid1_o with Some l1 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l1)) | None -> ""
-        in
-        let s_l = x_to_string l
-        in
-        let s_l2 =
-          match lid2_o with Some l2 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l2)) | None -> ""
-        in s_l1 ^ s_l ^ s_l2
-   in
-        s_li ^  " where " ^ s_lbel ^ s_clrde
-
-
-
+                              (fun (_, (lin, co_exp)) -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident lin))
+^ " : " ^lean_string_of_ppcmds  (pr_top co_exp) ^ "\n"
+                              ) lc)
+                      | RecordDecl (lid1_o, l,  lid2_o) ->
+                         let s_l1 =
+                           match lid1_o with
+                             Some l1 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l1))
+                           | None -> ""
+                         in
+                         let s_l = x_to_string l
+                         in
+                         let s_l2 =
+                           match lid2_o with
+                             Some l2 -> lean_string_of_ppcmds (pr_qualid (qualid_of_lident l2))
+                           | None -> ""
+                         in s_l1 ^ s_l ^ s_l2
+    in
+    s_li ^  s_lbel ^ " where " ^ s_clrde
 
 (*                                 Some e -> "v" | None -> "nothing" *)
 
@@ -112,6 +133,45 @@ let rocq_to_lean (doc : Rocq_document.t) :
     (transformation_step list, Error.t) result =
   (* let proofs = Rocq_document.get_proofs doc in *)
 
+  (* Lemma, Theorem, *)
+  let lemma_nodes =
+    List.filter Syntax_node.is_syntax_node_proof_start doc.elements
+  in
+  let replace_lemma_command_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacStartTheoremProof (tk,pel) ->
+               (* type proof_expr = ident_decl * (local_binder_expr list * constr_expr) *)
+                let s_theorem = match tk with
+                  | Theorem -> "theorem"
+                  | Lemma -> "lemma"
+                  | Fact -> "lemma"
+                  | Remark -> "lemma"
+                  | Property -> "lemma"
+                  | Proposition -> "lemma"
+                  | Corollary ->  "lemma" in
+                let s_pel =String.concat ""
+                              (List.map (fun x -> match x with ((li,udeo), (lbel,ce)) -> lean_string_of_ppcmds (pr_lident li)) pel)
+                in
+
+                let lean_phrase = s_theorem ^ " " ^ s_pel in
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      lemma_nodes
+    |> List.concat
+
+  in
 
   (* Proof command *)
   let proof_command_nodes =
@@ -120,15 +180,14 @@ let rocq_to_lean (doc : Rocq_document.t) :
   let replace_proof_command_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) proof_command_nodes
   in
 
-  
   (* proof nodes *)
-
+(*
   let tactic_nodes =
     List.filter Syntax_node.is_syntax_node_tactic doc.elements
   in
   let replace_tactic_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) tactic_nodes
   in
-
+ *) 
   (* end of proof : Qed or Admitted *)
 
  let end_proof_nodes =
@@ -141,7 +200,6 @@ let rocq_to_lean (doc : Rocq_document.t) :
                                  Replace (x.id, node)) end_proof_nodes
   in
 
-  
   (* require commands *)
   let require_nodes =
     List.filter Syntax_node.is_syntax_node_require doc.elements
@@ -233,8 +291,104 @@ let rocq_to_lean (doc : Rocq_document.t) :
 
   in
 
-  (*                              match l with               (ind_expr, ndl)
-                              Logs.debug (fun m -> m "here");[]*)
+  (* beginning of section *)
+let beginning_section_nodes =
+    List.filter Syntax_node.is_syntax_node_section_command doc.elements
+  in
+  let replace_beginning_section_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+        match x.ast with
+        | Some ast -> (
+          match (Coq.Ast.to_coq ast.v).v.expr with
+          | VernacSynterp expr -> (
+            match expr with
+              Vernacexpr.VernacBeginSection li ->
+               let lean_phrase = "section " ^ (lean_string_of_ppcmds (pr_lident li))
+               in
+               let node = Syntax_node.comment_syntax_node_of_string
+                            lean_phrase x.range.start
+                          |> Result.get_ok
+               in
+               [Replace (x.id, node)]
+            | _ -> [])
+           | VernacSynPure expr -> []
+                                     )
+         | None -> [])
+      beginning_section_nodes
+        |> List.concat
+
+  in
+
+  (* end of section *)
+  let end_section_nodes =
+    List.filter Syntax_node.is_syntax_node_end_section_command doc.elements
+  in
+  let replace_end_section_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+        match x.ast with
+        | Some ast -> (
+          match (Coq.Ast.to_coq ast.v).v.expr with
+          | VernacSynterp expr -> (
+            match expr with
+              Vernacexpr.VernacEndSegment li ->
+               let lean_phrase = "end " ^ (lean_string_of_ppcmds (pr_lident li))
+               in
+               let node = Syntax_node.comment_syntax_node_of_string
+                            lean_phrase x.range.start
+                          |> Result.get_ok
+               in
+               [Replace (x.id, node)]
+            | _ -> [])
+           | VernacSynPure expr -> []
+                                     )
+         | None -> [])
+      end_section_nodes
+        |> List.concat
+
+  in
+
+  (* definitions *)
+  let definition_nodes =
+    List.filter Syntax_node.is_syntax_node_definition_command doc.elements in
+  (* VernacDefinition of (discharge * Decls.definition_object_kind) * name_decl * definition_expr *)
+  let replace_definition_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacDefinition ((d,dok), (ln,univ),de) ->
+                let body = match de with
+                    ProveBody (lbel,ce) ->
+                     let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
+                     let s_ce = lean_string_of_ppcmds (pr_top ce) in s_lbel ^ s_ce
+                  | DefineBody (lbel, rreo, ce, ceo) ->
+                     let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
+                     let s_ce = lean_string_of_ppcmds (pr_top ce) in
+                let s_ceo = match ceo with Some s -> lean_string_of_ppcmds (pr_top s) | None -> "" in
+                s_lbel ^ " := "^s_ce ^ s_ceo
+                in
+
+                let lean_phrase = "def " ^ lean_string_of_ppcmds (pr_lname ln) ^ " " ^ body
+                in
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      definition_nodes
+    |> List.concat
+
+  in
+  
+ 
 
   (* comments *)
   let comment_nodes =
@@ -253,9 +407,13 @@ let rocq_to_lean (doc : Rocq_document.t) :
         Replace (x.id, lean_comment_node))
       comment_nodes
   in
-  Ok (replace_proof_command_nodes @
-        replace_end_proof_nodes @
-          replace_tactic_nodes @
-            replace_requires @
-              replace_classes @
-                replace_comments)
+  Ok (replace_lemma_command_nodes @
+        replace_proof_command_nodes @
+          replace_end_proof_nodes @
+          (*replace_tactic_nodes @*)
+              replace_requires @
+                replace_classes @
+                  replace_beginning_section_nodes @
+                    replace_end_section_nodes @
+                      replace_definition_nodes @
+                        replace_comments)
