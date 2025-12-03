@@ -32,18 +32,6 @@ test: $(V_TARGET_GEN)
 
 PREFIX := $(HOME)/.local
 
-install:
-	mkdir -p vendor/
-	rm -rf vendor/fcc 
-	cp ./_opam/bin/fcc ./vendor/fcc
-	dune build . --profile=release
-	dune build . @install --profile=release
-	dune install --prefix=$(PREFIX)
-
-uninstall:
-	dune uninstall --prefix=$(PREFIX)
-	rm -rf vendor/fcc
-
 dump-json:
 	dune build ./test/json_dump_plugin/ --profile=release
 	dune exec fcc -- --plugin=json-dump-plugin ./test/fixtures/ex_multiple_jumps.v

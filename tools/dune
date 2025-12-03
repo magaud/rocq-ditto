@@ -1,0 +1,7 @@
+
+(executable
+ (name main)
+ (package get-dependencies)
+ (public_name get-dependencies)
+ (libraries unix coq-ditto)
+)

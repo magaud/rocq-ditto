@@ -120,6 +120,18 @@
   coq-ditto))
 
 (package
+ (name get-dependencies)
+ (synopsis "Get the dependencies of a file")
+ (allow_empty)
+ (depends
+  ocaml
+  (coq-lsp (>= 0.2.3))
+  base-unix
+  re
+  coq-ditto))
+
+
+(package
  (name target-generator-plugin)
  (synopsis "Generate JSON results for test comparisons")
  (allow_empty)

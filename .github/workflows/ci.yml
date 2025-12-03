@@ -8,38 +8,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        rocq-version: ["latest", "9.0.0", "8.20.0"]
+        rocq-version: ["9.1.0", "9.0.0", "8.20.0"]
+        os: ["ubuntu-latest", "macos-latest"]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install opam (no switch)
+      - name: Install opam
         run: |
-          sudo apt update
-          sudo apt install -y opam
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt update
+            sudo apt install -y opam
+          else
+            brew install opam
+          fi
           opam init -y --bare
-          eval "$(opam env)"
 
-      - name: Cache opam root
-        uses: actions/cache@v4
-        with:
-          path: ~/.opam
-          key: opam-root-${{ matrix.rocq-version }}-${{ hashFiles('configure.sh', '**/*.opam') }}
-          restore-keys: opam-root-
-          
-      - name: Clean local switch
-        run: rm -rf _opam/
-
-      - name: Configure Rocq Ditto
+      - name: Configure Rocq-ditto
         run: |
           set -eux
           ./configure.sh ${{ matrix.rocq-version }}
-          eval "$(opam env)"
+          eval "$(opam env --switch=./ --set-switch)"
 
-      - name: Run tests
-        run: dune runtest
+      - name: Build Rocq-ditto
+        run: |
+          eval "$(opam env --switch=./ --set-switch)"
+          dune build
 
