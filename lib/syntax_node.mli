@@ -78,6 +78,10 @@ val is_syntax_node_focusing_goal : t -> bool
 val is_syntax_node_section_command : t -> bool
 val is_syntax_node_end_section_command : t -> bool
 val is_syntax_node_definition_command : t -> bool
+val is_syntax_node_notation_command : t -> bool
+val is_syntax_node_create_hintdb_command : t -> bool
+val is_syntax_node_hint_command : t -> bool
+val is_syntax_node_instance : t -> bool
 
 val is_syntax_node_focus_command : t -> bool
 (** [is_syntax_node_focus_command] check if [x] is the command [Focus] *)

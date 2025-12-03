@@ -135,8 +135,7 @@ let rocq_to_lean (doc : Rocq_document.t) :
 
   (* Lemma, Theorem, *)
   let lemma_nodes =
-    List.filter Syntax_node.is_syntax_node_proof_start doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_proof_start doc.elements in
   let replace_lemma_command_nodes =
     List.map
       (fun (x : Syntax_node.t) ->
@@ -156,10 +155,10 @@ let rocq_to_lean (doc : Rocq_document.t) :
                   | Property -> "lemma"
                   | Proposition -> "lemma"
                   | Corollary ->  "lemma" in
-                let s_pel =String.concat ""
-                              (List.map (fun x -> match x with ((li,udeo), (lbel,ce)) -> lean_string_of_ppcmds (pr_lident li)) pel)
-                in
-
+                let s_pel =
+                  String.concat ""
+                    (List.map
+                       (fun x -> match x with ((li,udeo), (lbel,ce)) -> lean_string_of_ppcmds (pr_lident li)) pel) in 
                 let lean_phrase = s_theorem ^ " " ^ s_pel in
                 let node = Syntax_node.comment_syntax_node_of_string
                              lean_phrase x.range.start
@@ -175,24 +174,41 @@ let rocq_to_lean (doc : Rocq_document.t) :
 
   (* Proof command *)
   let proof_command_nodes =
-    List.filter Syntax_node.is_syntax_node_proof_command doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_proof_command doc.elements in
   let replace_proof_command_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) proof_command_nodes
   in
 
   (* proof nodes *)
-(*
+
   let tactic_nodes =
-    List.filter Syntax_node.is_syntax_node_tactic doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_tactic doc.elements in
   let replace_tactic_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) tactic_nodes
   in
- *) 
+
+  (* notations *)
+
+  let notation_nodes =
+    List.filter Syntax_node.is_syntax_node_notation_command doc.elements in
+  let replace_notation_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) notation_nodes
+  in
+  (* hints *)
+
+  let hint_nodes =
+    List.filter Syntax_node.is_syntax_node_hint_command doc.elements in
+  let replace_hint_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) hint_nodes
+  in
+  
+
+  (* create hintdb *)
+  let create_hintdb_nodes =
+    List.filter Syntax_node.is_syntax_node_create_hintdb_command doc.elements in
+  let replace_create_hintdb_nodes = List.map (fun (x : Syntax_node.t) -> Remove x.id) create_hintdb_nodes
+  in
+
   (* end of proof : Qed or Admitted *)
 
  let end_proof_nodes =
-    List.filter Syntax_node.is_syntax_node_proof_end doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_proof_end doc.elements in
   let replace_end_proof_nodes = List.map (fun (x : Syntax_node.t) ->
                                  let node = Syntax_node.comment_syntax_node_of_string
                             ":= by admit\n" x.range.start
@@ -202,8 +218,7 @@ let rocq_to_lean (doc : Rocq_document.t) :
 
   (* require commands *)
   let require_nodes =
-    List.filter Syntax_node.is_syntax_node_require doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_require doc.elements in
   let replace_requires =
     List.map
       (fun (x : Syntax_node.t) ->
@@ -261,8 +276,7 @@ let rocq_to_lean (doc : Rocq_document.t) :
 
   (* inductive and classes *)
   let inductives_and_classes_nodes =
-    List.filter Syntax_node.is_syntax_node_inductive doc.elements
-  in
+    List.filter Syntax_node.is_syntax_node_inductive doc.elements in
 
   let (replace_classes : transformation_step list) =
         List.map
@@ -290,11 +304,68 @@ let rocq_to_lean (doc : Rocq_document.t) :
         |> List.concat
 
   in
+  (* instances *)
+  let instance_nodes = List.filter Syntax_node.is_syntax_node_instance doc.elements in
+  let replace_instance_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacInstance ((ln,udeo),lbel,ce,bce,hie) ->
+                let s_ln = lean_string_of_ppcmds (pr_lname ln) in
+                let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
+                let s_ce = lean_string_of_ppcmds (pr_top ce) in 
+                let lean_phrase = "instance " ^s_ln ^ s_lbel ^ " : " ^ s_ce (*s_theorem ^ " " ^ s_pel*) in
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      instance_nodes
+    |> List.concat in 
+
+  (* context *)
+  let context_nodes = List.filter Syntax_node.is_syntax_node_context doc.elements in
+  let replace_context_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacContext lbel -> 
+                let s_lbel = String.concat ""
+                               (List.map
+                                  (fun x -> match x with
+                                              CLocalAssum (ll,rie,bk,ce) ->
+                                               "variable {" ^ (String.concat "" (List.map (fun x -> (lean_string_of_ppcmds (pr_lname x))) ll)) ^
+                                                 " : " ^
+                                                   (lean_string_of_ppcmds (pr_top ce)) ^ "} \n open " ^ (lean_string_of_ppcmds (pr_top ce))
+                                            | CLocalDef    (_,_,_,_) -> "CLocalDef?"
+                                            | CLocalPattern _ -> "CLocalPattern?") lbel)
+                (*lean_string_of_ppcmds (pr_binders empty_env  empty lbel)*) in
+                let lean_phrase = s_lbel in 
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      context_nodes
+    |> List.concat in 
 
   (* beginning of section *)
-let beginning_section_nodes =
-    List.filter Syntax_node.is_syntax_node_section_command doc.elements
-  in
+  let beginning_section_nodes =
+    List.filter Syntax_node.is_syntax_node_section_command doc.elements in
   let replace_beginning_section_nodes =
     List.map
       (fun (x : Syntax_node.t) ->
@@ -363,10 +434,26 @@ let beginning_section_nodes =
            | VernacSynPure expr -> (
              match expr with
                Vernacexpr.VernacDefinition ((d,dok), (ln,univ),de) ->
+                let s_d = match dok with
+                    Definition -> "def"
+                  | Coercion ->  "coercion?"
+                  | SubClass -> "subclass?"
+                  | CanonicalStructure -> "canonicalstructure?"
+                  | Example -> "def" (* using "example" fails on the lean side *)
+                  | Fixpoint -> "fixpoint?"
+                  | CoFixpoint -> "cofixpoint?"
+                  | Scheme -> "scheme?"
+                  | StructureComponent -> "structurecomponent?"
+                  | IdentityCoercion -> "identitycoercion?"
+                  | Instance -> "instance?"
+                  | Method -> "method?"
+                  | Let -> "let?"
+                  | LetContext -> "letcontext?" in 
+
                 let body = match de with
                     ProveBody (lbel,ce) ->
                      let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
-                     let s_ce = lean_string_of_ppcmds (pr_top ce) in s_lbel ^ s_ce
+                     let s_ce = lean_string_of_ppcmds (pr_top ce) in s_lbel ^ ": " ^ s_ce
                   | DefineBody (lbel, rreo, ce, ceo) ->
                      let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
                      let s_ce = lean_string_of_ppcmds (pr_top ce) in
@@ -374,7 +461,7 @@ let beginning_section_nodes =
                 s_lbel ^ " := "^s_ce ^ s_ceo
                 in
 
-                let lean_phrase = "def " ^ lean_string_of_ppcmds (pr_lname ln) ^ " " ^ body
+                let lean_phrase = s_d ^ " " ^ lean_string_of_ppcmds (pr_lname ln) ^ " " ^ body
                 in
                 let node = Syntax_node.comment_syntax_node_of_string
                              lean_phrase x.range.start
@@ -387,8 +474,11 @@ let beginning_section_nodes =
     |> List.concat
 
   in
-  
- 
+  (* bullets *)
+  let bullet_nodes =
+    List.filter Syntax_node.is_syntax_node_bullet doc.elements in 
+  let replace_bullet_nodes =List.map (fun (x : Syntax_node.t) -> Remove x.id) bullet_nodes in 
+
 
   (* comments *)
   let comment_nodes =
@@ -410,10 +500,16 @@ let beginning_section_nodes =
   Ok (replace_lemma_command_nodes @
         replace_proof_command_nodes @
           replace_end_proof_nodes @
-          (*replace_tactic_nodes @*)
-              replace_requires @
-                replace_classes @
-                  replace_beginning_section_nodes @
-                    replace_end_section_nodes @
-                      replace_definition_nodes @
-                        replace_comments)
+            replace_create_hintdb_nodes @
+              replace_notation_nodes @
+                replace_hint_nodes @
+                  replace_tactic_nodes @
+                    replace_requires @
+                      replace_classes @
+                        replace_instance_nodes @
+                          replace_context_nodes @ 
+                            replace_beginning_section_nodes @
+                              replace_end_section_nodes @
+                                replace_definition_nodes @
+                                  replace_bullet_nodes @
+                                    replace_comments)

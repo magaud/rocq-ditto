@@ -256,6 +256,16 @@ let is_syntax_node_tactic (x : t) : bool =
       | VernacSynPure _ -> false)
   | None -> false
 
+let is_syntax_node_hint_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacHints _ -> true | _ -> false))
+  | None -> false
+
+
 let is_syntax_node_proof_command (x : t) : bool =
   match x.ast with
   | Some ast -> (
@@ -263,6 +273,23 @@ let is_syntax_node_proof_command (x : t) : bool =
       | VernacSynterp _ -> false
       | VernacSynPure expr -> (
           match expr with Vernacexpr.VernacProof _ -> true | _ -> false))
+  | None -> false
+
+let is_syntax_node_create_hintdb_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacCreateHintDb _ -> true | _ -> false))
+  | None -> false
+
+let is_syntax_node_notation_command (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp expr -> (match expr with Vernacexpr.VernacNotation (_,_) -> true | _ -> false)
+      | VernacSynPure _ -> false)
   | None -> false
 
 let is_syntax_node_proof_with (x : t) : bool =
@@ -427,6 +454,15 @@ let is_syntax_node_bullet (x : t) : bool =
       | VernacSynterp _ -> false
       | VernacSynPure expr -> (
           match expr with Vernacexpr.VernacBullet _ -> true | _ -> false))
+  | None -> false
+
+let is_syntax_node_instance (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacInstance _ -> true | _ -> false))
   | None -> false
 
 let is_syntax_node_opening_bracket (x : t) : bool =
