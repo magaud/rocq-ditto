@@ -74,7 +74,8 @@ val is_syntax_node_bullet : t -> bool
 val is_syntax_node_opening_bracket : t -> bool
 val is_syntax_node_closing_bracket : t -> bool
 val is_syntax_node_focusing_goal : t -> bool
-
+val is_syntax_node_variable : t -> bool
+val is_syntax_node_fixpoint : t -> bool
 val is_syntax_node_section_command : t -> bool
 val is_syntax_node_end_section_command : t -> bool
 val is_syntax_node_definition_command : t -> bool

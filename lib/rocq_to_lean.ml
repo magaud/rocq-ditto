@@ -6,6 +6,7 @@ open Ppconstr
 open Libnames
 open Pputils
 open Constrexpr
+open Ppvernac
 
 let charlist_of_string s =
   let rec trav l i =
@@ -149,7 +150,7 @@ let rocq_to_lean (doc : Rocq_document.t) :
                (* type proof_expr = ident_decl * (local_binder_expr list * constr_expr) *)
                 let s_theorem = match tk with
                   | Theorem -> "theorem"
-                  | Lemma -> "lemma"
+                  | Lemma -> "theorem"
                   | Fact -> "lemma"
                   | Remark -> "lemma"
                   | Property -> "lemma"
@@ -158,8 +159,12 @@ let rocq_to_lean (doc : Rocq_document.t) :
                 let s_pel =
                   String.concat ""
                     (List.map
-                       (fun x -> match x with ((li,udeo), (lbel,ce)) -> lean_string_of_ppcmds (pr_lident li)) pel) in 
-                let lean_phrase = s_theorem ^ " " ^ s_pel in
+                       (fun x -> match x with ((li,udeo), (lbel,ce)) ->
+                                   (lean_string_of_ppcmds (pr_lident li)) ^
+                                     (lean_string_of_ppcmds (pr_binders empty_env  empty lbel)) ^ " : " ^ 
+                                       (lean_string_of_ppcmds (pr_top ce)))
+                       pel) in
+                let lean_phrase = s_theorem ^ " " ^ s_pel  in
                 let node = Syntax_node.comment_syntax_node_of_string
                              lean_phrase x.range.start
                              |> Result.get_ok
@@ -171,7 +176,70 @@ let rocq_to_lean (doc : Rocq_document.t) :
     |> List.concat
 
   in
+(* Fixpoint *)
+  let fixpoint_nodes =
+    List.filter Syntax_node.is_syntax_node_fixpoint doc.elements in
+  let replace_fixpoint_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacFixpoint (discharge,(fixpoint_order_expr_option_list, recursive_expr_gen_list)) ->
+              let s_f = String.concat "" (List.map (fun x -> "") fixpoint_order_expr_option_list) in
+              let s_r = String.concat "" (List.map (fun x -> lean_string_of_ppcmds (pr_rec_definition (None, x))) recursive_expr_gen_list) in
+              let lean_phrase = "def " ^ String.sub s_r 0 ((String.length s_r)-3) ^s_f in 
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      fixpoint_nodes
+    |> List.concat
 
+  in
+
+(* Variable/Parameter *)
+  let variable_nodes =
+    List.filter Syntax_node.is_syntax_node_variable doc.elements in
+  let replace_variable_nodes =
+    List.map
+      (fun (x : Syntax_node.t) ->
+         match x.ast with
+         | Some ast -> (
+           match (Coq.Ast.to_coq ast.v).v.expr with
+           | VernacSynterp _ -> []
+           | VernacSynPure expr -> (
+             match expr with
+               Vernacexpr.VernacAssumption ((discharge, assumption_object_kind), inline, ident_decl_list_and_constr_expr_with_coercion_list) -> 
+                (*                  , inline , t ->*)
+                let s_assumption_kind = match assumption_object_kind with
+                    Definitional -> "/-definitional-/"
+                  | Logical -> "/-logical-/"
+                  | Conjectural -> "/-conjectural-/"
+                  | Context -> "/-context-/"
+                in
+                let s_ident = "(" ^ String.concat "" (List.map (fun (x,(idl,ce)) -> (String.concat "" (List.map (fun (li,_) -> (lean_string_of_ppcmds (pr_lident li)) ^" ") idl)) ^ " : " ^(lean_string_of_ppcmds (pr_top ce))) ident_decl_list_and_constr_expr_with_coercion_list) ^")" in  
+                let lean_phrase = "variable " ^ s_assumption_kind ^ s_ident in 
+                let node = Syntax_node.comment_syntax_node_of_string
+                             lean_phrase x.range.start
+                             |> Result.get_ok
+                in
+                [Replace (x.id, node)]
+             | _ -> []))
+         | None -> [])
+      variable_nodes
+    |> List.concat
+
+  in
+
+
+  
   (* Proof command *)
   let proof_command_nodes =
     List.filter Syntax_node.is_syntax_node_proof_command doc.elements in
@@ -457,8 +525,8 @@ let rocq_to_lean (doc : Rocq_document.t) :
                   | DefineBody (lbel, rreo, ce, ceo) ->
                      let s_lbel = lean_string_of_ppcmds (pr_binders empty_env  empty lbel) in
                      let s_ce = lean_string_of_ppcmds (pr_top ce) in
-                let s_ceo = match ceo with Some s -> lean_string_of_ppcmds (pr_top s) | None -> "" in
-                s_lbel ^ " := "^s_ce ^ s_ceo
+                let s_ceo = match ceo with Some s -> " : " ^ lean_string_of_ppcmds (pr_top s) | None -> "" in
+                s_lbel ^ s_ceo ^ " := "^s_ce
                 in
 
                 let lean_phrase = s_d ^ " " ^ lean_string_of_ppcmds (pr_lname ln) ^ " " ^ body
@@ -476,9 +544,17 @@ let rocq_to_lean (doc : Rocq_document.t) :
   in
   (* bullets *)
   let bullet_nodes =
-    List.filter Syntax_node.is_syntax_node_bullet doc.elements in 
-  let replace_bullet_nodes =List.map (fun (x : Syntax_node.t) -> Remove x.id) bullet_nodes in 
+    List.filter Syntax_node.is_syntax_node_bullet doc.elements in
+  let replace_bullet_nodes =List.map (fun (x : Syntax_node.t) -> Remove x.id) bullet_nodes in
 
+  (* opening brackets *)
+  let opening_nodes =
+    List.filter Syntax_node.is_syntax_node_opening_bracket doc.elements in
+  let replace_opening_nodes =List.map (fun (x : Syntax_node.t) -> Remove x.id) opening_nodes in
+  (* closing brackets *)
+  let closing_nodes =
+    List.filter Syntax_node.is_syntax_node_closing_bracket doc.elements in
+  let replace_closing_nodes =List.map (fun (x : Syntax_node.t) -> Remove x.id) closing_nodes in
 
   (* comments *)
   let comment_nodes =
@@ -498,18 +574,22 @@ let rocq_to_lean (doc : Rocq_document.t) :
       comment_nodes
   in
   Ok (replace_lemma_command_nodes @
-        replace_proof_command_nodes @
-          replace_end_proof_nodes @
-            replace_create_hintdb_nodes @
-              replace_notation_nodes @
-                replace_hint_nodes @
-                  replace_tactic_nodes @
-                    replace_requires @
-                      replace_classes @
-                        replace_instance_nodes @
-                          replace_context_nodes @ 
-                            replace_beginning_section_nodes @
-                              replace_end_section_nodes @
-                                replace_definition_nodes @
-                                  replace_bullet_nodes @
-                                    replace_comments)
+        replace_variable_nodes @ 
+          replace_proof_command_nodes @
+            replace_fixpoint_nodes @
+              replace_end_proof_nodes @
+                replace_create_hintdb_nodes @
+                  replace_notation_nodes @
+                    replace_hint_nodes @
+                      replace_tactic_nodes @
+                        replace_requires @
+                          replace_classes @
+                            replace_instance_nodes @
+                              replace_context_nodes @
+                                replace_beginning_section_nodes @
+                                  replace_end_section_nodes @
+                                    replace_definition_nodes @
+                                      replace_bullet_nodes @
+                                        replace_opening_nodes @
+                                          replace_closing_nodes @
+                                            replace_comments)

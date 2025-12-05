@@ -447,6 +447,25 @@ let is_syntax_node_definition_with_proof (x : t) : bool =
           | _ -> false))
   | None -> false
 
+let is_syntax_node_variable (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacAssumption _ -> true | _ -> false))
+  | None -> false
+
+
+let is_syntax_node_fixpoint (x : t) : bool =
+  match x.ast with
+  | Some ast -> (
+      match (Coq.Ast.to_coq ast.v).CAst.v.expr with
+      | VernacSynterp _ -> false
+      | VernacSynPure expr -> (
+          match expr with Vernacexpr.VernacFixpoint _ -> true | _ -> false))
+  | None -> false
+
 let is_syntax_node_bullet (x : t) : bool =
   match x.ast with
   | Some ast -> (
