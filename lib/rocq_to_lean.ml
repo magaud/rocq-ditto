@@ -160,7 +160,7 @@ let rocq_to_lean (doc : Rocq_document.t) :
                   String.concat ""
                     (List.map
                        (fun x -> match x with ((li,udeo), (lbel,ce)) ->
-                                   (lean_string_of_ppcmds (pr_lident li)) ^
+                                   (lean_string_of_ppcmds (pr_lident li)) ^ " " ^ 
                                      (lean_string_of_ppcmds (pr_binders empty_env  empty lbel)) ^ " : " ^ 
                                        (lean_string_of_ppcmds (pr_top ce)))
                        pel) in

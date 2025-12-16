@@ -10,6 +10,7 @@ type transformation_kind =
   | IdTransformation
   | ConstructivizeGeocoq
   | RocqToLean
+  | RocqTyping
 [@@deriving show { with_path = false }, enum]
 
 type dependencies_action =
@@ -68,6 +69,7 @@ let transformations_help =
     ( ConstructivizeGeocoq,
       "Experimental: Transformation to use to constructivize Geocoq" );
     (RocqToLean, "Experimental: Turn Rocq code to lean");
+    (RocqTyping, "Experimental: Add types to Rocq definitions, fixpoints, lemmas");
     (IdTransformation, "Keep the file unchanged.");
   ]
 

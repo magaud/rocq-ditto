@@ -29,6 +29,7 @@ let transformation_kind_to_scoped_function (kind : transformation_kind) :
   | FlattenGoalSelectors -> ProofScope Transformations.flatten_goal_selectors
   | ConstructivizeGeocoq -> DocScope Constructivisation.constructivize_doc
   | RocqToLean -> DocScope Rocq_to_lean.rocq_to_lean
+  | RocqTyping -> DocScope Rocq_typing.rocq_to_typed_rocq
   | IdTransformation -> ProofScope Transformations.id_transform
 
 let local_apply_doc_transformation (doc_acc : Rocq_document.t)
